@@ -161,14 +161,46 @@ async function initSummary() {
   await chrome.storage.local.set({ summaryCache: current });
 
   renderSummaryText(content, result.summary);
+
+  // AI succeeded and returned its own flags analysis -- this supersedes the
+  // regex-only flags renderCurrentPageFlags() already showed on popup-open
+  // (the AI can reason about context, e.g. not flagging an incidental
+  // "unpaid leave" mention when a real salary is also stated). Persist it so
+  // the next popup open -- and the tracked-application sync in
+  // background.js, which reads flaggedPages[url].flags -- also reflect the
+  // AI-derived flags, not the stale regex-only ones. If the AI call had
+  // failed instead, we return early above and never reach here, so the
+  // regex-based flags already on screen simply remain the final answer.
+  if (Array.isArray(result.flags)) {
+    const { flaggedPages: currentFlagged = {} } = await chrome.storage.local.get("flaggedPages");
+    if (currentFlagged[tab.url]) {
+      currentFlagged[tab.url] = { ...currentFlagged[tab.url], flags: result.flags };
+      await chrome.storage.local.set({ flaggedPages: currentFlagged });
+    }
+    renderCurrentPageFlags();
+  }
 }
 
 const STATUS_OPTIONS = ["Applied", "Interview", "Offer", "Rejected"];
+const DASHBOARD_URL = "https://application-tracker-ocop.onrender.com/dashboard";
+const RECENT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 function statusOptionsHtml(current) {
   return STATUS_OPTIONS.map(
     (s) => `<option value="${s}" ${s === current ? "selected" : ""}>${s}</option>`
   ).join("");
+}
+
+// Display-filter only -- storage/sync are untouched. Full history always
+// lives in chrome.storage.local (and synced to the backend) regardless of
+// what the popup chooses to show; this just narrows what's rendered here.
+// Both renderApplications() and its remove-button handler call this with
+// the same freshly-read list so index-based lookups stay in sync with each
+// other even as items age out of the window between renders.
+function getRecentApplications(applications) {
+  return applications
+    .filter((app) => Date.now() - app.appliedAt <= RECENT_WINDOW_MS)
+    .sort((a, b) => b.appliedAt - a.appliedAt);
 }
 
 async function renderApplications() {
@@ -180,9 +212,14 @@ async function renderApplications() {
     return;
   }
 
-  const sorted = [...applications].sort((a, b) => b.appliedAt - a.appliedAt);
+  const recent = getRecentApplications(applications);
 
-  container.innerHTML = sorted
+  if (recent.length === 0) {
+    container.innerHTML = `<div class="empty-state">No recent activity. View all applications on your dashboard →</div>`;
+    return;
+  }
+
+  container.innerHTML = recent
     .map((app, index) => {
       const date = new Date(app.appliedAt).toLocaleDateString();
       const addedNote = app.source === "manual" ? " \u2022 added manually" : "";
@@ -217,8 +254,8 @@ async function renderApplications() {
     btn.addEventListener("click", async (e) => {
       const idx = parseInt(e.target.getAttribute("data-index"), 10);
       const { applications: current = [] } = await chrome.storage.local.get("applications");
-      const sortedCurrent = [...current].sort((a, b) => b.appliedAt - a.appliedAt);
-      const toRemove = sortedCurrent[idx];
+      const recentCurrent = getRecentApplications(current);
+      const toRemove = recentCurrent[idx];
       const updated = current.filter((a) => a !== toRemove);
       await chrome.storage.local.set({ applications: updated });
       renderApplications();
@@ -276,4 +313,8 @@ document.getElementById("manual-track-btn").addEventListener("click", async () =
 
 document.getElementById("open-options-btn").addEventListener("click", () => {
   chrome.runtime.openOptionsPage();
+});
+
+document.getElementById("viewAllApplicationsBtn").addEventListener("click", () => {
+  chrome.tabs.create({ url: DASHBOARD_URL });
 });

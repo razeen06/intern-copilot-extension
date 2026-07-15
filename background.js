@@ -301,7 +301,10 @@ async function summarizePage(url) {
     }
 
     const data = await response.json();
-    return { ok: true, summary: data.summary, cached: data.cached };
+    // data.flags is the AI-derived flags (or the server's own regex-fallback
+    // if Gemini's response didn't parse) -- popup.js uses this to replace
+    // the regex flags it already showed immediately on popup-open.
+    return { ok: true, summary: data.summary, cached: data.cached, flags: data.flags };
   } catch (err) {
     console.warn("Intern Copilot: summarize request error", err);
     return { ok: false, error: "Summary unavailable" };

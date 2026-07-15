@@ -328,6 +328,25 @@
       pointer-events: none;
     }
 
+    .view-all-btn {
+      display: block;
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--accent-text);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      text-align: center;
+      padding: 10px 0 2px;
+      margin-top: 4px;
+      cursor: pointer;
+      transition: color 0.15s ease;
+    }
+    .view-all-btn:hover {
+      color: var(--accent);
+    }
+
     /* ---- AI summary: dynamic content classes from popup.js ---- */
     .summary-loading,
     .summary-error {
@@ -425,6 +444,7 @@
     <div class="section">
       <p class="section-title">Tracked applications</p>
       <div id="applications-list"></div>
+      <button id="viewAllApplicationsBtn" class="view-all-btn">View all applications ↗</button>
     </div>
   </div>
 
