@@ -2,9 +2,10 @@
 // The extension's central "brain" - content scripts can't store data
 // directly in a reliable shared way, so they send messages here instead.
 
-// Base URL of the Flask Application Tracker API. Update this if the app is
-// deployed somewhere other than the local dev server.
-const API_BASE_URL = "http://127.0.0.1:5000";
+// Base URL of the Flask Application Tracker API -- the deployed production
+// app. Update this if it ever moves to a different domain (and update
+// manifest.json's host_permissions + externally_connectable to match).
+const API_BASE_URL = "https://application-tracker-ocop.onrender.com";
 
 // Must match manifest.json's externally_connectable.matches. The manifest
 // already restricts which origins Chrome will even deliver a message from,

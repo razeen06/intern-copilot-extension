@@ -25,7 +25,8 @@
     "*://*/*position*",
     "*://*/*opportunit*",
     "*://*/*recruit*",
-    "*://*/*join-us*"
+    "*://*/*join-us*",
+    "https://application-tracker-ocop.onrender.com/*"
   ],
   "background": {
     "service_worker": "background.js"
