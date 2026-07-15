@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    :root {
+      color-scheme: dark;
+      /* --accent stays vivid for solid fills (button bg, brand mark) --
+         white-on-accent contrast (5.70:1) is a fixed pair, theme-independent.
+         --accent-text is a lighter step for when accent appears as bare
+         text/icon color directly on the dark card -- the vivid hex only
+         hits 3.18:1 there (fails normal-text AA), so text-context uses read
+         --accent-text (6.66:1) instead. */
+      --accent: #7c3aed;
+      --accent-hover: #6d28d9;
+      --accent-text: #a78bfa;
+      --accent-tint: rgba(124, 58, 237, 0.16);
+      /* good/warning already clear 4.5:1 against the dark card as-is
+         (5.40 / 9.88), no adjustment needed. critical did not (3.75:1) and
+         is used both as an icon color and an inherited text color on hover,
+         so it's shifted to a lighter step (6.55:1) rather than split into
+         two variables. */
+      --good: #0ca30c;
+      --good-tint: rgba(12, 163, 12, 0.16);
+      --warning: #fab219;
+      --warning-tint: rgba(250, 178, 25, 0.14);
+      --critical: #f87171;
+      --critical-tint: rgba(248, 113, 113, 0.14);
+      --ink: #f5f7fa;
+      --ink-secondary: #9aa4b2;
+      --ink-muted: #7c8798;
+      --page-bg: #0b0e13;
+      --card-bg: #12161d;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      width: 380px;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--page-bg);
+    }
+
+    .shell {
+      padding: 16px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-mark {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      flex: none;
+    }
+
+    .brand-name {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--ink-secondary);
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .icon-btn:hover {
+      background: var(--accent-tint);
+      color: var(--accent-text);
+    }
+
+    .section {
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      margin: 0 0 8px 2px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      padding: 12px 14px;
+    }
+
+    /* ---- current-page-flags: dynamic content classes from popup.js ---- */
+    .flag-box {
+      background: var(--warning-tint);
+      border: 1px solid rgba(250, 178, 25, 0.3);
+      border-radius: 14px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .flag-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      font-size: 12.5px;
+      line-height: 1.4;
+      color: var(--ink);
+    }
+    .flag-item svg {
+      color: var(--warning);
+      flex: none;
+      margin-top: 1px;
+    }
+    .no-flags {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--ink);
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+    .no-flags svg { color: var(--good); flex: none; }
+    .empty-state {
+      font-size: 12.5px;
+      color: var(--ink-secondary);
+      background: var(--card-bg);
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      font-family: inherit;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .btn:active { transform: scale(0.98); }
+
+    .btn-outline {
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--ink);
+    }
+    .btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent-text);
+      background: var(--accent-tint);
+    }
+
+    .btn-accent {
+      border: none;
+      background: var(--accent);
+      color: white;
+    }
+    .btn-accent:hover { background: var(--accent-hover); }
+    .btn-accent:disabled {
+      opacity: 0.6;
+      cursor: default;
+      transform: none;
+    }
+
+    /* ---- candidate banner ---- */
+    .candidate-banner {
+      background: var(--accent-tint);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--ink);
+    }
+    .candidate-banner-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .candidate-banner-row svg {
+      color: var(--accent-text);
+      flex: none;
+      margin-top: 1px;
+    }
+
+    /* ---- tracked applications: dynamic content classes from popup.js ---- */
+    #applications-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .app-row {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      transition: box-shadow 0.15s ease, transform 0.1s ease;
+    }
+    .app-row:hover {
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+    }
+
+    .app-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .app-title {
+      font-size: 13px;
+      font-weight: 600;
+      max-width: 240px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .app-status {
+      font-size: 11px;
+      color: var(--ink-muted);
+      margin: 3px 0 8px;
+    }
+
+    .app-controls {
+      display: flex;
+      gap: 6px;
+    }
+
+    .status-select,
+    .notes-input {
+      font-size: 12px;
+      font-family: inherit;
+      padding: 5px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--page-bg);
+      color: var(--ink);
+    }
+    .status-select { flex: none; }
+    .notes-input { flex: 1; min-width: 0; }
+
+    .status-select:focus,
+    .notes-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-tint);
+    }
+
+    .status-select:disabled,
+    .notes-input:disabled {
+      background: #1c212b;
+      color: var(--ink-muted);
+      border-color: var(--border);
+    }
+
+    .remove-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border: none;
+      background: transparent;
+      color: var(--ink-muted);
+      cursor: pointer;
+      font-size: 11px;
+      font-family: inherit;
+      padding: 4px 6px;
+      border-radius: 6px;
+      flex: none;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .remove-btn:hover {
+      background: var(--critical-tint);
+      color: var(--critical);
+    }
+    /* popup.js reads e.target.getAttribute("data-index") on click, expecting
+       the button itself to be the target -- these child icon/label nodes
+       must never intercept the click, or the index lookup breaks. */
+    .remove-btn svg,
+    .remove-btn span {
+      pointer-events: none;
+    }
+
+    /* ---- AI summary: dynamic content classes from popup.js ---- */
+    .summary-loading,
+    .summary-error {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--ink-secondary);
+    }
+    .summary-error { color: var(--ink); }
+    .summary-error svg { color: var(--critical); flex: none; }
+
+    .summary-retry-btn {
+      margin-left: auto;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--accent-text);
+      font-size: 11px;
+      font-weight: 600;
+      font-family: inherit;
+      padding: 4px 9px;
+      border-radius: 7px;
+      cursor: pointer;
+      flex: none;
+      transition: background 0.15s ease;
+    }
+    .summary-retry-btn:hover { background: var(--accent-tint); }
+
+    .summary-text {
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: var(--ink);
+      white-space: pre-line;
+    }
+
+    .spinner {
+      animation: spin 0.8s linear infinite;
+      flex: none;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="topbar">
+      <div class="brand">
+        <span class="brand-mark">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 4 12 14.01 9 11.01"/>
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+          </svg>
+        </span>
+        <span class="brand-name">Intern Copilot</span>
+      </div>
+      <button id="open-options-btn" class="icon-btn" aria-label="Settings" title="Settings">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div id="candidate-banner" class="candidate-banner" style="display:none;">
+      <div class="candidate-banner-row">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <div id="candidate-banner-text"></div>
+      </div>
+      <button id="enable-detection-btn" class="btn btn-accent">Enable detection on this site</button>
+    </div>
+
+    <div class="section">
+      <p class="section-title">This page</p>
+      <div id="current-page-flags"></div>
+      <button id="manual-track-btn" class="btn btn-outline">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Track this page as an application
+      </button>
+    </div>
+
+    <div class="section" id="summary-section" style="display:none;">
+      <p class="section-title">AI Summary</p>
+      <div id="summary-content" class="card"></div>
+    </div>
+
+    <div class="section">
+      <p class="section-title">Tracked applications</p>
+      <div id="applications-list"></div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

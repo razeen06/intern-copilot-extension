@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Intern Copilot — Settings</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      /* See popup.html for the contrast rationale behind these exact
+         values -- --accent stays vivid for fills, --critical is shifted
+         lighter (was 3.75:1 on the dark card, now 6.55:1) since it's used
+         as both an icon color and an inherited text color on hover. good
+         already clears 4.5:1 as-is against the dark card, no change. */
+      --accent: #7c3aed;
+      --accent-hover: #6d28d9;
+      --accent-tint: rgba(124, 58, 237, 0.16);
+      --good: #0ca30c;
+      --good-tint: rgba(12, 163, 12, 0.16);
+      --critical: #f87171;
+      --critical-tint: rgba(248, 113, 113, 0.14);
+      --ink: #f5f7fa;
+      --ink-secondary: #9aa4b2;
+      --ink-muted: #7c8798;
+      --page-bg: #0b0e13;
+      --card-bg: #12161d;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 480px;
+      margin: 48px auto;
+      padding: 0 20px 60px;
+      color: var(--ink);
+      background: var(--page-bg);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      flex: none;
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      padding: 20px 22px;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      margin: 0 0 12px;
+    }
+
+    p.helper {
+      font-size: 12.5px;
+      color: var(--ink-secondary);
+      margin: 0 0 14px;
+      line-height: 1.6;
+    }
+
+    label {
+      font-size: 12.5px;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 7px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-sizing: border-box;
+      color: var(--ink);
+      background: var(--page-bg);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-tint);
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.05s ease;
+    }
+    button:hover { background: var(--accent-hover); }
+    button:active { transform: scale(0.98); }
+
+    #status {
+      margin-top: 10px;
+      font-size: 12.5px;
+      color: var(--good);
+      min-height: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .site-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .site-row:last-child { border-bottom: none; }
+
+    .site-row span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-right: 10px;
+    }
+
+    .site-row button {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin: 0;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--ink-muted);
+      flex: none;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .site-row button:hover {
+      background: var(--critical-tint);
+      color: var(--critical);
+    }
+    /* Defensive: options.js's remove-site-btn handler reads btn.dataset (not
+       e.target), so this isn't strictly required today, but keeps click
+       targeting consistent with popup.html's remove-btn regardless. */
+    .site-row button svg,
+    .site-row button span {
+      pointer-events: none;
+    }
+
+    .empty-state {
+      font-size: 12.5px;
+      color: var(--ink-secondary);
+      padding: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="brand-mark">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 4 12 14.01 9 11.01"/>
+        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+      </svg>
+    </span>
+    <h1>Intern Copilot Settings</h1>
+  </div>
+
+  <div class="card">
+    <p class="section-title">API Token</p>
+    <p class="helper">
+      The easiest way to connect is the <strong>"Connect Extension"</strong>
+      button on your Application Tracker dashboard (sign in to the web app,
+      then click it on the dashboard page) -- it sends your token here
+      automatically, no copy-pasting needed.
+    </p>
+    <p class="helper">
+      Prefer to do it by hand, or the button isn't working? Paste your token
+      below manually instead (find it by visiting <code>/api/token</code>
+      while signed in). Applications are always saved locally to this
+      extension too, so tracking still works offline either way.
+    </p>
+
+    <label for="token-input">Token (manual entry)</label>
+    <input type="text" id="token-input" placeholder="Paste your token here" autocomplete="off" spellcheck="false" />
+    <button id="save-btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+        <polyline points="17 21 17 13 7 13 7 21"/>
+        <polyline points="7 3 7 8 15 8"/>
+      </svg>
+      Save
+    </button>
+    <div id="status"></div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">Sites you've enabled detection on</p>
+    <p class="helper">
+      Beyond the built-in job boards, you can enable detection on any other
+      career page from the extension's popup when it's not covered yet. Sites
+      you've approved that way are listed here and can be removed anytime.
+    </p>
+    <div id="approved-sites-list"></div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

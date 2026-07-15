@@ -1,0 +1,74 @@
+{
+  "manifest_version": 3,
+  "name": "Intern Copilot",
+  "version": "0.1.0",
+  "description": "Flags internship eligibility red flags and tracks applications automatically.",
+  "permissions": ["storage", "notifications", "activeTab", "scripting"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "host_permissions": [
+    "*://*.linkedin.com/jobs/*",
+    "*://*.seek.com.au/*",
+    "*://*.seek.co.nz/*",
+    "*://*.indeed.com/*",
+    "*://*.indeed.co.uk/*",
+    "*://*.indeed.ca/*",
+    "*://*.indeed.com.au/*",
+    "*://*.myworkdayjobs.com/*",
+    "*://*.greenhouse.io/*",
+    "*://*.lever.co/*",
+    "*://*.smartrecruiters.com/*",
+    "*://*/*career*",
+    "*://*/*job*",
+    "*://*/*apply*",
+    "*://*/*hiring*",
+    "*://*/*vacanc*",
+    "*://*/*position*",
+    "*://*/*opportunit*",
+    "*://*/*recruit*",
+    "*://*/*join-us*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.linkedin.com/jobs/*",
+        "*://*.seek.com.au/*",
+        "*://*.seek.co.nz/*",
+        "*://*.indeed.com/*",
+        "*://*.indeed.co.uk/*",
+        "*://*.indeed.ca/*",
+        "*://*.indeed.com.au/*",
+        "*://*.myworkdayjobs.com/*",
+        "*://*.greenhouse.io/*",
+        "*://*.lever.co/*",
+        "*://*.smartrecruiters.com/*",
+        "*://*/*career*",
+        "*://*/*job*",
+        "*://*/*apply*",
+        "*://*/*hiring*",
+        "*://*/*vacanc*",
+        "*://*/*position*",
+        "*://*/*opportunit*",
+        "*://*/*recruit*",
+        "*://*/*join-us*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Intern Copilot"
+  },
+  "options_page": "options.html",
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "externally_connectable": {
+    "matches": ["https://application-tracker-ocop.onrender.com/*"]
+  }
+}
