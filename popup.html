@@ -382,6 +382,49 @@
       white-space: pre-line;
     }
 
+    /* ---- Application Priority: dynamic content classes from popup.js ---- */
+    .priority-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--ink);
+      padding: 7px 0;
+    }
+    .priority-row:not(:last-child) {
+      border-bottom: 1px solid var(--border);
+    }
+    .priority-row-label { color: var(--ink-secondary); }
+    .priority-row-value {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+    .priority-note {
+      font-weight: 400;
+      color: var(--ink-muted);
+      font-size: 11.5px;
+    }
+
+    .priority-label-row {
+      justify-content: flex-start;
+      padding-top: 10px;
+    }
+    .priority-label-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .priority-badge-low { background: var(--critical-tint); color: var(--critical); }
+    .priority-badge-worth { background: var(--warning-tint); color: var(--warning); }
+    .priority-badge-strong { background: var(--accent-tint); color: var(--accent-text); }
+    .priority-badge-top { background: var(--good-tint); color: var(--good); }
+
     .spinner {
       animation: spin 0.8s linear infinite;
       flex: none;
@@ -439,6 +482,11 @@
     <div class="section" id="summary-section" style="display:none;">
       <p class="section-title">AI Summary</p>
       <div id="summary-content" class="card"></div>
+    </div>
+
+    <div class="section" id="priority-section" style="display:none;">
+      <p class="section-title">Application Priority</p>
+      <div id="priority-content" class="card"></div>
     </div>
 
     <div class="section">

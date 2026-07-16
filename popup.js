@@ -181,6 +181,144 @@ async function initSummary() {
   }
 }
 
+// ---------- Application Priority ----------
+
+const PRIORITY_LABEL_CLASS = {
+  "Low Priority": "priority-badge-low",
+  "Worth Applying": "priority-badge-worth",
+  "Strong Match": "priority-badge-strong",
+  "Top Priority": "priority-badge-top",
+};
+
+function suitabilityRowHtml(state) {
+  if (state.status === "loading") {
+    return `<div class="priority-row"><span class="priority-row-label">Suitability</span><span class="priority-row-value">${SPINNER_ICON_SVG}</span></div>`;
+  }
+  if (state.status === "no-background") {
+    return `<div class="priority-row"><span class="priority-row-label">Suitability</span><span class="priority-note">Add background in Settings</span></div>`;
+  }
+  if (state.status === "error") {
+    return `<div class="priority-row"><span class="priority-row-label">Suitability</span><span class="priority-note">Unavailable</span></div>`;
+  }
+  return `<div class="priority-row"><span class="priority-row-label">Suitability</span><span class="priority-row-value">${state.score.toFixed(1)}/10</span></div>`;
+}
+
+function competitivenessRowHtml(state) {
+  if (state.status === "loading") {
+    return `<div class="priority-row"><span class="priority-row-label">Competitiveness</span><span class="priority-row-value">${SPINNER_ICON_SVG}</span></div>`;
+  }
+  if (state.status === "error") {
+    return `<div class="priority-row"><span class="priority-row-label">Competitiveness</span><span class="priority-note">Unavailable</span></div>`;
+  }
+  // Never claim a live lookup unless the backend actually confirmed the
+  // grounded call succeeded (see api.py's _fetch_competitiveness_from_gemini)
+  // -- an ungrounded guess must always read as an estimate, not research.
+  const groundedNote = state.grounded ? "verified via search" : "estimate";
+  return `<div class="priority-row"><span class="priority-row-label">Competitiveness</span><span class="priority-row-value">${state.score.toFixed(1)}/10<span class="priority-note">(${groundedNote})</span></span></div>`;
+}
+
+function priorityLabelRowHtml(label) {
+  if (!label) return "";
+  const cls = PRIORITY_LABEL_CLASS[label] || "priority-badge-worth";
+  return `<div class="priority-row priority-label-row"><span class="priority-label-badge ${cls}">${escapeHtml(label)}</span></div>`;
+}
+
+function renderPriority(content, suitabilityState, competitivenessState, priorityLabel) {
+  content.innerHTML =
+    suitabilityRowHtml(suitabilityState) +
+    competitivenessRowHtml(competitivenessState) +
+    priorityLabelRowHtml(priorityLabel);
+}
+
+async function initPriority() {
+  const section = document.getElementById("priority-section");
+  const content = document.getElementById("priority-content");
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !tab.url) return;
+
+  const { flaggedPages = {} } = await chrome.storage.local.get("flaggedPages");
+  const pageEntry = flaggedPages[tab.url];
+
+  // Same precondition as initSummary() -- nothing to score until content.js
+  // has reported page text for this URL.
+  if (!pageEntry) return;
+
+  section.style.display = "block";
+
+  const { priorityCache = {} } = await chrome.storage.local.get("priorityCache");
+  const cached = priorityCache[tab.url];
+
+  if (cached) {
+    renderPriority(
+      content,
+      cached.suitability_score != null
+        ? { status: "ready", score: cached.suitability_score }
+        : { status: cached.suitability_status || "error" },
+      cached.competitiveness_score != null
+        ? { status: "ready", score: cached.competitiveness_score, grounded: cached.grounded }
+        : { status: "error" },
+      cached.priority_label
+    );
+    return;
+  }
+
+  renderPriority(content, { status: "loading" }, { status: "loading" }, null);
+
+  // Both AI calls are independent (different endpoints, different data) --
+  // fire them together rather than serially, matching the "show scores as
+  // they load" requirement as closely as a single popup render allows.
+  const [suitabilityResult, competitivenessResult] = await Promise.all([
+    chrome.runtime.sendMessage({ type: "SCORE_SUITABILITY", url: tab.url }),
+    chrome.runtime.sendMessage({ type: "SCORE_COMPETITIVENESS", url: tab.url }),
+  ]);
+
+  let suitabilityState;
+  if (suitabilityResult && suitabilityResult.ok) {
+    suitabilityState = suitabilityResult.suitability_score != null
+      ? { status: "ready", score: suitabilityResult.suitability_score }
+      : { status: "no-background" };
+  } else {
+    suitabilityState = { status: "error" };
+  }
+
+  let competitivenessState;
+  if (competitivenessResult && competitivenessResult.ok) {
+    competitivenessState = {
+      status: "ready",
+      score: competitivenessResult.competitiveness_score,
+      grounded: competitivenessResult.grounded,
+    };
+  } else {
+    competitivenessState = { status: "error" };
+  }
+
+  let priorityLabel = null;
+  if (suitabilityState.status === "ready" && competitivenessState.status === "ready") {
+    const priorityResult = await chrome.runtime.sendMessage({
+      type: "COMPUTE_PRIORITY",
+      suitability_score: suitabilityState.score,
+      competitiveness_score: competitivenessState.score,
+    });
+    if (priorityResult && priorityResult.ok) {
+      priorityLabel = priorityResult.priority_label;
+    }
+  }
+
+  renderPriority(content, suitabilityState, competitivenessState, priorityLabel);
+
+  const { priorityCache: currentCache = {} } = await chrome.storage.local.get("priorityCache");
+  currentCache[tab.url] = {
+    suitability_score: suitabilityState.status === "ready" ? suitabilityState.score : null,
+    suitability_status: suitabilityState.status,
+    competitiveness_score: competitivenessState.status === "ready" ? competitivenessState.score : null,
+    grounded: competitivenessState.grounded || false,
+    priority_label: priorityLabel,
+    cachedAt: Date.now(),
+  };
+  await chrome.storage.local.set({ priorityCache: currentCache });
+}
+
 const STATUS_OPTIONS = ["Applied", "Interview", "Offer", "Rejected"];
 const DASHBOARD_URL = "https://application-tracker-ocop.onrender.com/dashboard";
 const RECENT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -287,6 +425,7 @@ async function renderApplications() {
 initCandidateBanner();
 renderCurrentPageFlags();
 initSummary();
+initPriority();
 renderApplications();
 
 // Manual fallback: works on ANY page, regardless of whether auto-detection

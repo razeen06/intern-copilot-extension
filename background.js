@@ -56,6 +56,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.type === "SUMMARIZE_PAGE") {
     summarizePage(message.url).then(sendResponse);
     return true;
+  } else if (message.type === "SCORE_SUITABILITY") {
+    scoreSuitability(message.url).then(sendResponse);
+    return true;
+  } else if (message.type === "SCORE_COMPETITIVENESS") {
+    scoreCompetitiveness(message.url).then(sendResponse);
+    return true;
+  } else if (message.type === "COMPUTE_PRIORITY") {
+    computePriority(message.suitability_score, message.competitiveness_score).then(sendResponse);
+    return true;
   }
 });
 
@@ -225,6 +234,26 @@ async function syncApplicationToApi({ url, title, appliedAt }) {
   const { flaggedPages = {} } = await chrome.storage.local.get("flaggedPages");
   const flags = flaggedPages[url]?.flags || [];
 
+  // If the popup already scored this page (see popup.js's initPriority),
+  // reuse those scores rather than re-scoring -- the application row is
+  // created with its priority_label already computed server-side (see
+  // api.py's create_application), instead of tracking first and hoping a
+  // later scan fills it in.
+  const { priorityCache = {} } = await chrome.storage.local.get("priorityCache");
+  const priorityEntry = priorityCache[url];
+
+  const body = {
+    title: title || url,
+    company: extractCompanyFromUrl(url),
+    url,
+    flags,
+    applied_date: new Date(appliedAt).toISOString().slice(0, 10),
+  };
+  if (priorityEntry) {
+    if (priorityEntry.suitability_score != null) body.suitability_score = priorityEntry.suitability_score;
+    if (priorityEntry.competitiveness_score != null) body.competitiveness_score = priorityEntry.competitiveness_score;
+  }
+
   try {
     const response = await fetch(`${API_BASE_URL}/api/applications`, {
       method: "POST",
@@ -232,13 +261,7 @@ async function syncApplicationToApi({ url, title, appliedAt }) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiToken}`,
       },
-      body: JSON.stringify({
-        title: title || url,
-        company: extractCompanyFromUrl(url),
-        url,
-        flags,
-        applied_date: new Date(appliedAt).toISOString().slice(0, 10),
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -308,5 +331,111 @@ async function summarizePage(url) {
   } catch (err) {
     console.warn("Intern Copilot: summarize request error", err);
     return { ok: false, error: "Summary unavailable" };
+  }
+}
+
+// ---------- Application Priority: suitability, competitiveness, combined label ----------
+
+// Reuses the same pageText as summarizePage() above -- no separate re-scrape.
+async function scoreSuitability(url) {
+  const { flaggedPages = {} } = await chrome.storage.local.get("flaggedPages");
+  const pageEntry = flaggedPages[url];
+
+  if (!pageEntry || !pageEntry.pageText) {
+    return { ok: false, error: "No page text available for this page yet" };
+  }
+
+  const { apiToken } = await chrome.storage.local.get("apiToken");
+  if (!apiToken) {
+    return { ok: false, error: "No API token configured" };
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/score-suitability`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiToken}`,
+      },
+      body: JSON.stringify({ page_text: pageEntry.pageText }),
+    });
+
+    if (!response.ok) {
+      console.warn("Intern Copilot: suitability scoring failed", response.status, await response.text());
+      return { ok: false, error: "Suitability score unavailable" };
+    }
+
+    const data = await response.json();
+    // suitability_score is null (with a message) when no background_text is
+    // set yet -- an expected state, not a failure, so this still returns
+    // ok: true and lets popup.js show data.message instead of a number.
+    return { ok: true, suitability_score: data.suitability_score, message: data.message };
+  } catch (err) {
+    console.warn("Intern Copilot: suitability scoring error", err);
+    return { ok: false, error: "Suitability score unavailable" };
+  }
+}
+
+async function scoreCompetitiveness(url) {
+  const { apiToken } = await chrome.storage.local.get("apiToken");
+  if (!apiToken) {
+    return { ok: false, error: "No API token configured" };
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/score-competitiveness`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiToken}`,
+      },
+      body: JSON.stringify({ company_name: extractCompanyFromUrl(url) }),
+    });
+
+    if (!response.ok) {
+      console.warn("Intern Copilot: competitiveness scoring failed", response.status, await response.text());
+      return { ok: false, error: "Competitiveness score unavailable" };
+    }
+
+    const data = await response.json();
+    // data.grounded distinguishes a real web-search-backed score from a
+    // plain-prompt estimate -- popup.js surfaces this as-is so an estimate
+    // is never shown as verified research.
+    return { ok: true, competitiveness_score: data.competitiveness_score, grounded: data.grounded };
+  } catch (err) {
+    console.warn("Intern Copilot: competitiveness scoring error", err);
+    return { ok: false, error: "Competitiveness score unavailable" };
+  }
+}
+
+async function computePriority(suitabilityScore, competitivenessScore) {
+  const { apiToken } = await chrome.storage.local.get("apiToken");
+  if (!apiToken) {
+    return { ok: false, error: "No API token configured" };
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/compute-priority`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiToken}`,
+      },
+      body: JSON.stringify({
+        suitability_score: suitabilityScore,
+        competitiveness_score: competitivenessScore,
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn("Intern Copilot: compute-priority failed", response.status, await response.text());
+      return { ok: false, error: "Priority label unavailable" };
+    }
+
+    const data = await response.json();
+    return { ok: true, priority_label: data.priority_label };
+  } catch (err) {
+    console.warn("Intern Copilot: compute-priority error", err);
+    return { ok: false, error: "Priority label unavailable" };
   }
 }
