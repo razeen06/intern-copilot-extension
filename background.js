@@ -216,13 +216,13 @@ async function updateApplication({ url, changes }) {
     });
 
     if (!response.ok) {
-      console.warn("Intern Copilot: update sync failed", response.status, await response.text());
+      console.warn("Application Tracker: update sync failed", response.status, await response.text());
       return { ok: true, synced: false };
     }
 
     return { ok: true, synced: true };
   } catch (err) {
-    console.warn("Intern Copilot: update sync error, kept local copy only", err);
+    console.warn("Application Tracker: update sync error, kept local copy only", err);
     return { ok: true, synced: false };
   }
 }
@@ -265,7 +265,7 @@ async function syncApplicationToApi({ url, title, appliedAt }) {
     });
 
     if (!response.ok) {
-      console.warn("Intern Copilot: API sync failed", response.status, await response.text());
+      console.warn("Application Tracker: API sync failed", response.status, await response.text());
       return null;
     }
 
@@ -274,7 +274,7 @@ async function syncApplicationToApi({ url, title, appliedAt }) {
   } catch (err) {
     // Network error, API unreachable, etc. -- the local storage.local copy
     // written in trackApplication() already has this application saved.
-    console.warn("Intern Copilot: API sync error, kept local copy only", err);
+    console.warn("Application Tracker: API sync error, kept local copy only", err);
     return null;
   }
 }
@@ -319,7 +319,7 @@ async function summarizePage(url) {
     });
 
     if (!response.ok) {
-      console.warn("Intern Copilot: summarize request failed", response.status, await response.text());
+      console.warn("Application Tracker: summarize request failed", response.status, await response.text());
       return { ok: false, error: "Summary unavailable" };
     }
 
@@ -329,7 +329,7 @@ async function summarizePage(url) {
     // the regex flags it already showed immediately on popup-open.
     return { ok: true, summary: data.summary, cached: data.cached, flags: data.flags };
   } catch (err) {
-    console.warn("Intern Copilot: summarize request error", err);
+    console.warn("Application Tracker: summarize request error", err);
     return { ok: false, error: "Summary unavailable" };
   }
 }
@@ -361,7 +361,7 @@ async function scoreSuitability(url) {
     });
 
     if (!response.ok) {
-      console.warn("Intern Copilot: suitability scoring failed", response.status, await response.text());
+      console.warn("Application Tracker: suitability scoring failed", response.status, await response.text());
       return { ok: false, error: "Suitability score unavailable" };
     }
 
@@ -371,7 +371,7 @@ async function scoreSuitability(url) {
     // ok: true and lets popup.js show data.message instead of a number.
     return { ok: true, suitability_score: data.suitability_score, message: data.message };
   } catch (err) {
-    console.warn("Intern Copilot: suitability scoring error", err);
+    console.warn("Application Tracker: suitability scoring error", err);
     return { ok: false, error: "Suitability score unavailable" };
   }
 }
@@ -393,7 +393,7 @@ async function scoreCompetitiveness(url) {
     });
 
     if (!response.ok) {
-      console.warn("Intern Copilot: competitiveness scoring failed", response.status, await response.text());
+      console.warn("Application Tracker: competitiveness scoring failed", response.status, await response.text());
       return { ok: false, error: "Competitiveness score unavailable" };
     }
 
@@ -403,7 +403,7 @@ async function scoreCompetitiveness(url) {
     // is never shown as verified research.
     return { ok: true, competitiveness_score: data.competitiveness_score, grounded: data.grounded };
   } catch (err) {
-    console.warn("Intern Copilot: competitiveness scoring error", err);
+    console.warn("Application Tracker: competitiveness scoring error", err);
     return { ok: false, error: "Competitiveness score unavailable" };
   }
 }
@@ -428,14 +428,14 @@ async function computePriority(suitabilityScore, competitivenessScore) {
     });
 
     if (!response.ok) {
-      console.warn("Intern Copilot: compute-priority failed", response.status, await response.text());
+      console.warn("Application Tracker: compute-priority failed", response.status, await response.text());
       return { ok: false, error: "Priority label unavailable" };
     }
 
     const data = await response.json();
     return { ok: true, priority_label: data.priority_label };
   } catch (err) {
-    console.warn("Intern Copilot: compute-priority error", err);
+    console.warn("Application Tracker: compute-priority error", err);
     return { ok: false, error: "Priority label unavailable" };
   }
 }
