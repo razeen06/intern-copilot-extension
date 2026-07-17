@@ -3,10 +3,12 @@
 // Inline SVG icons (no external icon library -- MV3 popups can't load
 // remote resources). Presentational only, swapped into the same template
 // strings that already existed; no change to logic, events, or data.
-const WARNING_ICON_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
-const CHECK_ICON_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
-const TRASH_ICON_SVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>`;
-const SPINNER_ICON_SVG = `<svg class="spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12a9 9 0 11-9-9"/></svg>`;
+const WARNING_ICON_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+const CHECK_ICON_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+const TRASH_ICON_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>`;
+const SPINNER_ICON_SVG = `<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 11-9-9"/></svg>`;
+const PAGE_EMPTY_ICON_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M7 6.5h.01"/></svg>`;
+const APPLICATIONS_EMPTY_ICON_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>`;
 
 // The Gemini-generated summary text is inserted into innerHTML below --
 // escape it first. It's LLM output derived from a scraped web page's text,
@@ -86,7 +88,7 @@ async function renderCurrentPageFlags() {
   const container = document.getElementById("current-page-flags");
 
   if (!tab || !tab.url) {
-    container.innerHTML = `<div class="empty-state">No active tab detected.</div>`;
+    container.innerHTML = `<div class="empty-state">${PAGE_EMPTY_ICON_SVG}<span class="empty-state-copy">No active tab detected.</span></div>`;
     return;
   }
 
@@ -346,14 +348,14 @@ async function renderApplications() {
   const { applications = [] } = await chrome.storage.local.get("applications");
 
   if (applications.length === 0) {
-    container.innerHTML = `<div class="empty-state">No applications tracked yet. When you submit one, you'll get a notification asking to add it.</div>`;
+    container.innerHTML = `<div class="empty-state">${APPLICATIONS_EMPTY_ICON_SVG}<span class="empty-state-copy">No applications tracked yet. When you submit one, you'll get a notification asking to add it.</span></div>`;
     return;
   }
 
   const recent = getRecentApplications(applications);
 
   if (recent.length === 0) {
-    container.innerHTML = `<div class="empty-state">No recent activity. View all applications on your dashboard →</div>`;
+    container.innerHTML = `<div class="empty-state">${APPLICATIONS_EMPTY_ICON_SVG}<span class="empty-state-copy">No recent activity. View all applications on your dashboard →</span></div>`;
     return;
   }
 
@@ -367,7 +369,7 @@ async function renderApplications() {
         <div class="app-row">
           <div class="app-row-top">
             <div class="app-title">${app.title || app.url}</div>
-            <button class="remove-btn" data-index="${index}">${TRASH_ICON_SVG}<span>Remove</span></button>
+            <button class="remove-btn" data-index="${index}" aria-label="Remove application" title="Remove application">${TRASH_ICON_SVG}<span>Remove</span></button>
           </div>
           <div class="app-status">${date}${addedNote}</div>
           <div class="app-controls">

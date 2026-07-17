@@ -5,33 +5,31 @@
   <style>
     :root {
       color-scheme: dark;
-      /* --accent stays vivid for solid fills (button bg, brand mark) --
-         white-on-accent contrast (5.70:1) is a fixed pair, theme-independent.
-         --accent-text is a lighter step for when accent appears as bare
-         text/icon color directly on the dark card -- the vivid hex only
-         hits 3.18:1 there (fails normal-text AA), so text-context uses read
-         --accent-text (6.66:1) instead. */
       --accent: #7c3aed;
       --accent-hover: #6d28d9;
       --accent-text: #a78bfa;
-      --accent-tint: rgba(124, 58, 237, 0.16);
-      /* good/warning already clear 4.5:1 against the dark card as-is
-         (5.40 / 9.88), no adjustment needed. critical did not (3.75:1) and
-         is used both as an icon color and an inherited text color on hover,
-         so it's shifted to a lighter step (6.55:1) rather than split into
-         two variables. */
-      --good: #0ca30c;
-      --good-tint: rgba(12, 163, 12, 0.16);
-      --warning: #fab219;
-      --warning-tint: rgba(250, 178, 25, 0.14);
-      --critical: #f87171;
-      --critical-tint: rgba(248, 113, 113, 0.14);
-      --ink: #f5f7fa;
-      --ink-secondary: #9aa4b2;
-      --ink-muted: #7c8798;
-      --page-bg: #0b0e13;
-      --card-bg: #12161d;
-      --border: rgba(255, 255, 255, 0.08);
+      --accent-text-hover: #c4b5fd;
+      --accent-tint: rgba(124, 58, 237, 0.14);
+      --accent-border: rgba(167, 139, 250, 0.3);
+      --good: #34d399;
+      --good-tint: rgba(52, 211, 153, 0.12);
+      --warning: #fbbf24;
+      --warning-tint: rgba(251, 191, 36, 0.13);
+      --warning-border: rgba(251, 191, 36, 0.34);
+      --critical: #fb7185;
+      --critical-tint: rgba(251, 113, 133, 0.13);
+      --ink: #f7f7fb;
+      --ink-secondary: #aab2c2;
+      --ink-muted: #818b9d;
+      --page-bg: #090c12;
+      --card-bg: #121720;
+      --field-bg: #0c1017;
+      --disabled-bg: #1a202b;
+      --border: rgba(170, 178, 194, 0.14);
+      --border-strong: rgba(170, 178, 194, 0.22);
+      --focus-ring: rgba(167, 139, 250, 0.28);
+      --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.28);
+      --shadow-raised: 0 8px 22px rgba(0, 0, 0, 0.28);
     }
 
     * { box-sizing: border-box; }
@@ -40,8 +38,22 @@
       width: 380px;
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
       color: var(--ink);
       background: var(--page-bg);
+    }
+
+    button,
+    input,
+    select { font: inherit; }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--focus-ring);
     }
 
     .shell {
@@ -52,19 +64,20 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 14px;
+      min-height: 32px;
+      margin-bottom: 18px;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     .brand-mark {
-      width: 26px;
-      height: 26px;
-      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
       background: var(--accent);
       display: flex;
       align-items: center;
@@ -74,19 +87,19 @@
     }
 
     .brand-name {
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 700;
-      letter-spacing: -0.01em;
+      letter-spacing: -0.02em;
     }
 
     .icon-btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 30px;
-      height: 30px;
-      border-radius: 8px;
-      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      border: 1px solid transparent;
       background: transparent;
       color: var(--ink-secondary);
       cursor: pointer;
@@ -95,17 +108,19 @@
     .icon-btn:hover {
       background: var(--accent-tint);
       color: var(--accent-text);
+      border-color: var(--accent-border);
     }
 
     .section {
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
+    .section:last-child { margin-bottom: 0; }
 
     .section-title {
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
       color: var(--ink-muted);
       margin: 0 0 8px 2px;
     }
@@ -113,56 +128,69 @@
     .card {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-      padding: 12px 14px;
+      border-radius: 12px;
+      box-shadow: var(--shadow-card);
+      padding: 12px;
     }
 
     /* ---- current-page-flags: dynamic content classes from popup.js ---- */
     .flag-box {
       background: var(--warning-tint);
-      border: 1px solid rgba(250, 178, 25, 0.3);
-      border-radius: 14px;
-      padding: 10px 12px;
+      border: 1px solid var(--warning-border);
+      border-radius: 12px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
     }
     .flag-item {
       display: flex;
       align-items: flex-start;
-      gap: 7px;
-      font-size: 12.5px;
-      line-height: 1.4;
+      gap: 8px;
+      font-size: 13px;
+      line-height: 1.45;
       color: var(--ink);
     }
     .flag-item svg {
       color: var(--warning);
       flex: none;
-      margin-top: 1px;
+      margin-top: 2px;
     }
     .no-flags {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       font-size: 13px;
       color: var(--ink);
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px 14px;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      min-height: 44px;
+      padding: 11px 12px;
+      box-shadow: var(--shadow-card);
     }
     .no-flags svg { color: var(--good); flex: none; }
     .empty-state {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
       font-size: 12.5px;
       color: var(--ink-secondary);
       background: var(--card-bg);
       border: 1px dashed var(--border);
-      border-radius: 14px;
-      padding: 14px;
+      border-radius: 12px;
+      min-height: 54px;
+      padding: 12px;
       line-height: 1.5;
-      text-align: center;
+      text-align: left;
+    }
+    .empty-state svg {
+      color: var(--ink-muted);
+      flex: none;
+      margin-top: 1px;
+    }
+    .empty-state-copy {
+      min-width: 0;
     }
 
     .btn {
@@ -170,11 +198,11 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
+      min-height: 36px;
       font-size: 12.5px;
       font-weight: 600;
-      font-family: inherit;
-      padding: 8px 12px;
-      border-radius: 10px;
+      padding: 0 12px;
+      border-radius: 9px;
       cursor: pointer;
       transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
       width: 100%;
@@ -188,7 +216,7 @@
       color: var(--ink);
     }
     .btn-outline:hover {
-      border-color: var(--accent);
+      border-color: var(--accent-border);
       color: var(--accent-text);
       background: var(--accent-tint);
     }
@@ -208,24 +236,25 @@
     /* ---- candidate banner ---- */
     .candidate-banner {
       background: var(--accent-tint);
-      border: 1px solid rgba(124, 58, 237, 0.3);
-      border-radius: 14px;
-      padding: 12px 14px;
-      margin-bottom: 14px;
-      font-size: 12.5px;
+      border: 1px solid var(--accent-border);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 18px;
+      font-size: 13px;
       line-height: 1.5;
       color: var(--ink);
     }
     .candidate-banner-row {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       align-items: flex-start;
     }
     .candidate-banner-row svg {
       color: var(--accent-text);
       flex: none;
-      margin-top: 1px;
+      margin-top: 2px;
     }
+    .candidate-banner .btn { margin-top: 10px; }
 
     /* ---- tracked applications: dynamic content classes from popup.js ---- */
     #applications-list {
@@ -237,65 +266,68 @@
     .app-row {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px 14px;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-      transition: box-shadow 0.15s ease, transform 0.1s ease;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: var(--shadow-card);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
     .app-row:hover {
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-raised);
     }
 
     .app-row-top {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: center;
       gap: 8px;
     }
 
     .app-title {
-      font-size: 13px;
-      font-weight: 600;
-      max-width: 240px;
+      flex: 1;
+      min-width: 0;
+      font-size: 13.5px;
+      font-weight: 650;
+      letter-spacing: -0.005em;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .app-status {
-      font-size: 11px;
+      font-size: 11.5px;
       color: var(--ink-muted);
-      margin: 3px 0 8px;
+      margin: 2px 0 10px;
     }
 
     .app-controls {
       display: flex;
-      gap: 6px;
+      gap: 8px;
     }
 
     .status-select,
     .notes-input {
+      min-height: 34px;
       font-size: 12px;
-      font-family: inherit;
-      padding: 5px 8px;
+      padding: 6px 9px;
       border-radius: 8px;
       border: 1px solid var(--border);
-      background: var(--page-bg);
+      background: var(--field-bg);
       color: var(--ink);
     }
-    .status-select { flex: none; }
+    .status-select { flex: none; width: 104px; }
     .notes-input { flex: 1; min-width: 0; }
 
     .status-select:focus,
     .notes-input:focus {
       outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-tint);
+      border-color: var(--accent-border);
+      box-shadow: 0 0 0 3px var(--focus-ring);
     }
 
     .status-select:disabled,
     .notes-input:disabled {
-      background: #1c212b;
+      background: var(--disabled-bg);
       color: var(--ink-muted);
       border-color: var(--border);
     }
@@ -304,21 +336,24 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      border: none;
+      width: 30px;
+      height: 30px;
+      border: 1px solid transparent;
       background: transparent;
-      color: var(--ink-muted);
+      color: var(--ink-secondary);
       cursor: pointer;
-      font-size: 11px;
-      font-family: inherit;
-      padding: 4px 6px;
-      border-radius: 6px;
+      padding: 0;
+      border-radius: 8px;
       flex: none;
       transition: background 0.15s ease, color 0.15s ease;
+      opacity: 0.78;
     }
+    .app-row:hover .remove-btn,
+    .remove-btn:focus-visible { opacity: 1; }
     .remove-btn:hover {
       background: var(--critical-tint);
       color: var(--critical);
+      border-color: rgba(251, 113, 133, 0.25);
     }
     /* popup.js reads e.target.getAttribute("data-index") on click, expecting
        the button itself to be the target -- these child icon/label nodes
@@ -327,24 +362,39 @@
     .remove-btn span {
       pointer-events: none;
     }
+    .remove-btn span {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
 
     .view-all-btn {
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
       width: 100%;
       background: transparent;
       border: none;
       color: var(--accent-text);
+      min-height: 32px;
       font-size: 12px;
       font-weight: 600;
       font-family: inherit;
       text-align: center;
-      padding: 10px 0 2px;
-      margin-top: 4px;
+      padding: 7px 0 0;
+      margin-top: 6px;
       cursor: pointer;
       transition: color 0.15s ease;
     }
     .view-all-btn:hover {
-      color: var(--accent);
+      color: var(--accent-text-hover);
     }
 
     /* ---- AI summary: dynamic content classes from popup.js ---- */
@@ -352,8 +402,9 @@
     .summary-error {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 12.5px;
+      gap: 10px;
+      min-height: 24px;
+      font-size: 13px;
       color: var(--ink-secondary);
     }
     .summary-error { color: var(--ink); }
@@ -364,11 +415,12 @@
       border: 1px solid var(--border);
       background: transparent;
       color: var(--accent-text);
-      font-size: 11px;
+      min-height: 28px;
+      font-size: 11.5px;
       font-weight: 600;
       font-family: inherit;
-      padding: 4px 9px;
-      border-radius: 7px;
+      padding: 4px 10px;
+      border-radius: 8px;
       cursor: pointer;
       flex: none;
       transition: background 0.15s ease;
@@ -376,8 +428,8 @@
     .summary-retry-btn:hover { background: var(--accent-tint); }
 
     .summary-text {
-      font-size: 12.5px;
-      line-height: 1.55;
+      font-size: 13px;
+      line-height: 1.6;
       color: var(--ink);
       white-space: pre-line;
     }
@@ -388,14 +440,17 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      font-size: 12.5px;
+      font-size: 13px;
       color: var(--ink);
-      padding: 7px 0;
+      padding: 8px 0;
     }
     .priority-row:not(:last-child) {
       border-bottom: 1px solid var(--border);
     }
-    .priority-row-label { color: var(--ink-secondary); }
+    .priority-row-label {
+      color: var(--ink-secondary);
+      font-size: 12.5px;
+    }
     .priority-row-value {
       display: inline-flex;
       align-items: center;
@@ -415,7 +470,7 @@
     .priority-label-badge {
       display: inline-flex;
       align-items: center;
-      padding: 5px 12px;
+      padding: 5px 11px;
       border-radius: 999px;
       font-size: 12px;
       font-weight: 700;
@@ -428,6 +483,7 @@
     .spinner {
       animation: spin 0.8s linear infinite;
       flex: none;
+      color: var(--accent-text);
     }
     @keyframes spin {
       from { transform: rotate(0deg); }
@@ -440,7 +496,7 @@
     <div class="topbar">
       <div class="brand">
         <span class="brand-mark">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="22 4 12 14.01 9 11.01"/>
             <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
           </svg>
@@ -448,7 +504,7 @@
         <span class="brand-name">Intern Copilot</span>
       </div>
       <button id="open-options-btn" class="icon-btn" aria-label="Settings" title="Settings">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="3"/>
           <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
         </svg>
@@ -457,7 +513,7 @@
 
     <div id="candidate-banner" class="candidate-banner" style="display:none;">
       <div class="candidate-banner-row">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="10"/>
           <line x1="12" y1="16" x2="12" y2="12"/>
           <line x1="12" y1="8" x2="12.01" y2="8"/>
@@ -471,7 +527,7 @@
       <p class="section-title">This page</p>
       <div id="current-page-flags"></div>
       <button id="manual-track-btn" class="btn btn-outline">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="12" y1="5" x2="12" y2="19"/>
           <line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
@@ -492,7 +548,14 @@
     <div class="section">
       <p class="section-title">Tracked applications</p>
       <div id="applications-list"></div>
-      <button id="viewAllApplicationsBtn" class="view-all-btn">View all applications ↗</button>
+      <button id="viewAllApplicationsBtn" class="view-all-btn">
+        View all applications
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 3h7v7"/>
+          <path d="M10 14L21 3"/>
+          <path d="M21 14v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h5"/>
+        </svg>
+      </button>
     </div>
   </div>
 
