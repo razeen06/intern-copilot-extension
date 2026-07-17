@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Intern Copilot",
+  "name": "Application Tracker",
   "version": "0.1.0",
   "description": "Flags internship eligibility red flags and tracks applications automatically.",
   "permissions": ["storage", "notifications", "activeTab", "scripting"],
@@ -61,7 +61,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Intern Copilot"
+    "default_title": "Application Tracker"
   },
   "options_page": "options.html",
   "icons": {
