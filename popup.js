@@ -191,6 +191,7 @@ const PRIORITY_LABEL_CLASS = {
   "Strong Match": "priority-badge-strong",
   "Top Priority": "priority-badge-top",
 };
+const EMPLOYER_SCORING_CACHE_VERSION = 2;
 
 function suitabilityRowHtml(state) {
   if (state.status === "loading") {
@@ -251,7 +252,7 @@ async function initPriority() {
   const { priorityCache = {} } = await chrome.storage.local.get("priorityCache");
   const cached = priorityCache[tab.url];
 
-  if (cached) {
+  if (cached?.cache_version === EMPLOYER_SCORING_CACHE_VERSION) {
     renderPriority(
       content,
       cached.suitability_score != null
@@ -267,13 +268,29 @@ async function initPriority() {
 
   renderPriority(content, { status: "loading" }, { status: "loading" }, null);
 
-  // Both AI calls are independent (different endpoints, different data) --
-  // fire them together rather than serially, matching the "show scores as
-  // they load" requirement as closely as a single popup render allows.
-  const [suitabilityResult, competitivenessResult] = await Promise.all([
-    chrome.runtime.sendMessage({ type: "SCORE_SUITABILITY", url: tab.url }),
-    chrome.runtime.sendMessage({ type: "SCORE_COMPETITIVENESS", url: tab.url }),
-  ]);
+  // The existing suitability call also extracts the real hiring organisation
+  // from page text when structured markup/selectors could not. Wait for that
+  // result only when content.js did not already find the employer; this keeps
+  // common boards concurrent while preventing their domain from being scored.
+  const suitabilityPromise = chrome.runtime.sendMessage({ type: "SCORE_SUITABILITY", url: tab.url });
+  let competitivenessPromise;
+  if (pageEntry.employerName) {
+    competitivenessPromise = chrome.runtime.sendMessage({
+      type: "SCORE_COMPETITIVENESS",
+      url: tab.url,
+      employer_name: pageEntry.employerName,
+    });
+  }
+
+  const suitabilityResult = await suitabilityPromise;
+  if (!competitivenessPromise) {
+    competitivenessPromise = chrome.runtime.sendMessage({
+      type: "SCORE_COMPETITIVENESS",
+      url: tab.url,
+      employer_name: suitabilityResult?.employer_name || null,
+    });
+  }
+  const competitivenessResult = await competitivenessPromise;
 
   let suitabilityState;
   if (suitabilityResult && suitabilityResult.ok) {
@@ -311,9 +328,11 @@ async function initPriority() {
 
   const { priorityCache: currentCache = {} } = await chrome.storage.local.get("priorityCache");
   currentCache[tab.url] = {
+    cache_version: EMPLOYER_SCORING_CACHE_VERSION,
     suitability_score: suitabilityState.status === "ready" ? suitabilityState.score : null,
     suitability_status: suitabilityState.status,
     competitiveness_score: competitivenessState.status === "ready" ? competitivenessState.score : null,
+    company_name: competitivenessResult?.company_name || suitabilityResult?.employer_name || pageEntry.employerName || null,
     grounded: competitivenessState.grounded || false,
     priority_label: priorityLabel,
     cachedAt: Date.now(),

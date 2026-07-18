@@ -19,6 +19,7 @@
 // page text for these, the URL match already guarantees relevance.
 const KNOWN_JOB_BOARD_HOSTS = [
   "linkedin.com",
+  "seek.com",
   "seek.com.au",
   "seek.co.nz",
   "indeed.com",
@@ -113,12 +114,14 @@ function reportFlags() {
   // feature (background.js/popup.js), rather than re-scraping separately.
   const pageText = document.body.innerText || "";
   const flags = scanPageForFlags(pageText);
+  const employerName = ApplicationTrackerEmployer.extractEmployerName(document);
   chrome.runtime.sendMessage({
     type: "PAGE_FLAGS",
     url: window.location.href,
     title: document.title,
     flags,
     pageText,
+    employerName,
   });
 }
 
