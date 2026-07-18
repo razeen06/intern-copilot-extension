@@ -1,6 +1,7 @@
 // background.js
 // The extension's central "brain" - content scripts can't store data
 // directly in a reliable shared way, so they send messages here instead.
+importScripts("employer-extraction.js");
 
 // Base URL of the Flask Application Tracker API -- the deployed production
 // app. Update this if it ever moves to a different domain (and update
@@ -60,7 +61,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     scoreSuitability(message.url).then(sendResponse);
     return true;
   } else if (message.type === "SCORE_COMPETITIVENESS") {
-    scoreCompetitiveness(message.url).then(sendResponse);
+    scoreCompetitiveness(message.url, message.employer_name).then(sendResponse);
     return true;
   } else if (message.type === "COMPUTE_PRIORITY") {
     computePriority(message.suitability_score, message.competitiveness_score).then(sendResponse);
@@ -87,7 +88,7 @@ async function registerDynamicOrigin(originPattern) {
     {
       id,
       matches: [originPattern],
-      js: ["content.js"],
+      js: ["employer-extraction.js", "content.js"],
       runAt: "document_idle",
     },
   ]);
@@ -95,13 +96,19 @@ async function registerDynamicOrigin(originPattern) {
   return { ok: true };
 }
 
-async function handlePageFlags({ url, title, flags, pageText }) {
+async function handlePageFlags({ url, title, flags, pageText, employerName }) {
   // Always store an entry, even with zero flags -- popup.js's flags UI
   // already treats "no entry" and "entry with flags: []" identically (both
   // show "no red flags detected"), but the AI-summary feature needs
   // pageText to exist for every recognized job page, not just flagged ones.
   const { flaggedPages = {} } = await chrome.storage.local.get("flaggedPages");
-  flaggedPages[url] = { title, flags, pageText, checkedAt: Date.now() };
+  flaggedPages[url] = {
+    title,
+    flags,
+    pageText,
+    employerName: employerName || flaggedPages[url]?.employerName || null,
+    checkedAt: Date.now(),
+  };
   await chrome.storage.local.set({ flaggedPages });
 }
 
@@ -232,7 +239,8 @@ async function syncApplicationToApi({ url, title, appliedAt }) {
   if (!apiToken) return null; // no token saved yet in the options page -- local-only for now
 
   const { flaggedPages = {} } = await chrome.storage.local.get("flaggedPages");
-  const flags = flaggedPages[url]?.flags || [];
+  const pageEntry = flaggedPages[url] || {};
+  const flags = pageEntry.flags || [];
 
   // If the popup already scored this page (see popup.js's initPriority),
   // reuse those scores rather than re-scoring -- the application row is
@@ -244,7 +252,7 @@ async function syncApplicationToApi({ url, title, appliedAt }) {
 
   const body = {
     title: title || url,
-    company: extractCompanyFromUrl(url),
+    company: priorityEntry?.company_name || pageEntry.employerName || ApplicationTrackerEmployer.fallbackCompanyName(url),
     url,
     flags,
     applied_date: new Date(appliedAt).toISOString().slice(0, 10),
@@ -276,14 +284,6 @@ async function syncApplicationToApi({ url, title, appliedAt }) {
     // written in trackApplication() already has this application saved.
     console.warn("Application Tracker: API sync error, kept local copy only", err);
     return null;
-  }
-}
-
-function extractCompanyFromUrl(url) {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "Unknown";
   }
 }
 
@@ -369,17 +369,28 @@ async function scoreSuitability(url) {
     // suitability_score is null (with a message) when no background_text is
     // set yet -- an expected state, not a failure, so this still returns
     // ok: true and lets popup.js show data.message instead of a number.
-    return { ok: true, suitability_score: data.suitability_score, message: data.message };
+    return {
+      ok: true,
+      suitability_score: data.suitability_score,
+      employer_name: data.employer_name || pageEntry.employerName || null,
+      message: data.message,
+    };
   } catch (err) {
     console.warn("Application Tracker: suitability scoring error", err);
     return { ok: false, error: "Suitability score unavailable" };
   }
 }
 
-async function scoreCompetitiveness(url) {
+async function scoreCompetitiveness(url, employerName) {
   const { apiToken } = await chrome.storage.local.get("apiToken");
   if (!apiToken) {
     return { ok: false, error: "No API token configured" };
+  }
+
+  const { flaggedPages = {} } = await chrome.storage.local.get("flaggedPages");
+  const companyName = employerName || flaggedPages[url]?.employerName;
+  if (!companyName) {
+    return { ok: false, error: "Employer name unavailable" };
   }
 
   try {
@@ -389,7 +400,7 @@ async function scoreCompetitiveness(url) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiToken}`,
       },
-      body: JSON.stringify({ company_name: extractCompanyFromUrl(url) }),
+      body: JSON.stringify({ company_name: companyName }),
     });
 
     if (!response.ok) {
@@ -401,7 +412,12 @@ async function scoreCompetitiveness(url) {
     // data.grounded distinguishes a real web-search-backed score from a
     // plain-prompt estimate -- popup.js surfaces this as-is so an estimate
     // is never shown as verified research.
-    return { ok: true, competitiveness_score: data.competitiveness_score, grounded: data.grounded };
+    return {
+      ok: true,
+      company_name: data.company_name || companyName,
+      competitiveness_score: data.competitiveness_score,
+      grounded: data.grounded,
+    };
   } catch (err) {
     console.warn("Application Tracker: competitiveness scoring error", err);
     return { ok: false, error: "Competitiveness score unavailable" };

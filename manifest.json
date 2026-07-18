@@ -7,6 +7,7 @@
   "optional_host_permissions": ["http://*/*", "https://*/*"],
   "host_permissions": [
     "*://*.linkedin.com/jobs/*",
+    "*://*.seek.com/*",
     "*://*.seek.com.au/*",
     "*://*.seek.co.nz/*",
     "*://*.indeed.com/*",
@@ -35,6 +36,7 @@
     {
       "matches": [
         "*://*.linkedin.com/jobs/*",
+        "*://*.seek.com/*",
         "*://*.seek.com.au/*",
         "*://*.seek.co.nz/*",
         "*://*.indeed.com/*",
@@ -55,7 +57,7 @@
         "*://*/*recruit*",
         "*://*/*join-us*"
       ],
-      "js": ["content.js"],
+      "js": ["employer-extraction.js", "content.js"],
       "run_at": "document_idle"
     }
   ],

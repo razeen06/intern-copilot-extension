@@ -1,0 +1,7 @@
+{
+  "name": "application-tracker-extension",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}
