@@ -57,7 +57,7 @@
         "*://*/*recruit*",
         "*://*/*join-us*"
       ],
-      "js": ["employer-extraction.js", "content.js"],
+      "js": ["employer-extraction.js", "timeline-extraction.js", "content.js"],
       "run_at": "document_idle"
     }
   ],

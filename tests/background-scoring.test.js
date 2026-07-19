@@ -90,10 +90,11 @@ test("tracked SEEK application persists the same employer used by scoring", asyn
       },
       priorityCache: {
         [jobUrl]: {
-          cache_version: 2,
+          cache_version: 3,
           company_name: "Springtek",
           suitability_score: 7,
           competitiveness_score: 4,
+          hiring_end_date: "2027-02-17",
         },
       },
     },
@@ -115,5 +116,56 @@ test("tracked SEEK application persists the same employer used by scoring", asyn
   assert.equal(requestBody.company, "Springtek");
   assert.equal(requestBody.suitability_score, 7);
   assert.equal(requestBody.competitiveness_score, 4);
+  assert.equal(requestBody.hiring_end_date, "2027-02-17");
   assert.equal(storage.applications[0].apiId, 42);
+});
+
+test("notification tracking reuses suitability extraction for an uncached hiring date", async () => {
+  const jobUrl = "https://jobs.example.com/software-intern";
+  const requests = [];
+  const { send } = loadBackground(
+    {
+      apiToken: "token",
+      applications: [],
+      flaggedPages: {
+        [jobUrl]: {
+          flags: [],
+          employerName: "Example Co",
+          pageText: "The internship starts on 17 February 2027.",
+          hiringEndDate: "2027-02-17",
+        },
+      },
+      priorityCache: {},
+    },
+    async (url, options) => {
+      const body = JSON.parse(options.body);
+      requests.push({ url, body });
+      if (url.endsWith("/api/score-suitability")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              suitability_score: null,
+              employer_name: "Example Co",
+              hiring_end_date: "2027-02-17",
+            };
+          },
+        };
+      }
+      assert.match(url, /\/api\/applications$/);
+      return { ok: true, async json() { return { id: 77 }; } };
+    }
+  );
+
+  const result = await send({
+    type: "TRACK_APPLICATION",
+    url: jobUrl,
+    title: "Software Intern",
+    source: "notification",
+  });
+
+  assert.equal(result.apiId, 77);
+  assert.equal(requests.length, 2);
+  assert.equal(requests[1].body.company, "Example Co");
+  assert.equal(requests[1].body.hiring_end_date, "2027-02-17");
 });

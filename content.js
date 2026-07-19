@@ -115,6 +115,12 @@ function reportFlags() {
   const pageText = document.body.innerText || "";
   const flags = scanPageForFlags(pageText);
   const employerName = ApplicationTrackerEmployer.extractEmployerName(document);
+  // Previously registered optional-site content scripts may not include the
+  // new helper until that site is re-registered. Keep those installations
+  // working and let the backend AI extraction provide the date meanwhile.
+  const hiringEndDate = globalThis.ApplicationTrackerTimeline
+    ? ApplicationTrackerTimeline.extractHiringEndDate(pageText)
+    : null;
   chrome.runtime.sendMessage({
     type: "PAGE_FLAGS",
     url: window.location.href,
@@ -122,6 +128,7 @@ function reportFlags() {
     flags,
     pageText,
     employerName,
+    hiringEndDate,
   });
 }
 
