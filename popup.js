@@ -191,7 +191,7 @@ const PRIORITY_LABEL_CLASS = {
   "Strong Match": "priority-badge-strong",
   "Top Priority": "priority-badge-top",
 };
-const EMPLOYER_SCORING_CACHE_VERSION = 2;
+const EMPLOYER_SCORING_CACHE_VERSION = 3;
 
 function suitabilityRowHtml(state) {
   if (state.status === "loading") {
@@ -333,6 +333,7 @@ async function initPriority() {
     suitability_status: suitabilityState.status,
     competitiveness_score: competitivenessState.status === "ready" ? competitivenessState.score : null,
     company_name: competitivenessResult?.company_name || suitabilityResult?.employer_name || pageEntry.employerName || null,
+    hiring_end_date: suitabilityResult?.hiring_end_date || pageEntry.hiringEndDate || null,
     grounded: competitivenessState.grounded || false,
     priority_label: priorityLabel,
     cachedAt: Date.now(),
@@ -340,7 +341,7 @@ async function initPriority() {
   await chrome.storage.local.set({ priorityCache: currentCache });
 }
 
-const STATUS_OPTIONS = ["Applied", "Interview", "Offer", "Rejected"];
+const STATUS_OPTIONS = ["Applied", "Interview", "Offer", "Rejected", "Closed"];
 const DASHBOARD_URL = "https://application-tracker-ocop.onrender.com/dashboard";
 const RECENT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 

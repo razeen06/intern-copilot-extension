@@ -88,7 +88,7 @@ async function registerDynamicOrigin(originPattern) {
     {
       id,
       matches: [originPattern],
-      js: ["employer-extraction.js", "content.js"],
+      js: ["employer-extraction.js", "timeline-extraction.js", "content.js"],
       runAt: "document_idle",
     },
   ]);
@@ -96,7 +96,7 @@ async function registerDynamicOrigin(originPattern) {
   return { ok: true };
 }
 
-async function handlePageFlags({ url, title, flags, pageText, employerName }) {
+async function handlePageFlags({ url, title, flags, pageText, employerName, hiringEndDate }) {
   // Always store an entry, even with zero flags -- popup.js's flags UI
   // already treats "no entry" and "entry with flags: []" identically (both
   // show "no red flags detected"), but the AI-summary feature needs
@@ -107,6 +107,7 @@ async function handlePageFlags({ url, title, flags, pageText, employerName }) {
     flags,
     pageText,
     employerName: employerName || flaggedPages[url]?.employerName || null,
+    hiringEndDate: hiringEndDate || flaggedPages[url]?.hiringEndDate || null,
     checkedAt: Date.now(),
   };
   await chrome.storage.local.set({ flaggedPages });
@@ -248,7 +249,23 @@ async function syncApplicationToApi({ url, title, appliedAt }) {
   // api.py's create_application), instead of tracking first and hoping a
   // later scan fills it in.
   const { priorityCache = {} } = await chrome.storage.local.get("priorityCache");
-  const priorityEntry = priorityCache[url];
+  let priorityEntry = priorityCache[url];
+
+  // Notification-based tracking can happen without the popup ever opening,
+  // so there may be no cached suitability metadata yet. Reuse that existing
+  // endpoint here rather than inventing a second AI call/API shape solely for
+  // employer and timeline extraction.
+  if (!priorityEntry || priorityEntry.cache_version !== 3) {
+    const suitabilityResult = await scoreSuitability(url);
+    if (suitabilityResult?.ok) {
+      priorityEntry = {
+        ...(priorityEntry || {}),
+        cache_version: 3,
+        company_name: suitabilityResult.employer_name || priorityEntry?.company_name || null,
+        hiring_end_date: suitabilityResult.hiring_end_date || pageEntry.hiringEndDate || null,
+      };
+    }
+  }
 
   const body = {
     title: title || url,
@@ -256,6 +273,7 @@ async function syncApplicationToApi({ url, title, appliedAt }) {
     url,
     flags,
     applied_date: new Date(appliedAt).toISOString().slice(0, 10),
+    hiring_end_date: priorityEntry?.hiring_end_date || pageEntry.hiringEndDate || null,
   };
   if (priorityEntry) {
     if (priorityEntry.suitability_score != null) body.suitability_score = priorityEntry.suitability_score;
@@ -373,6 +391,7 @@ async function scoreSuitability(url) {
       ok: true,
       suitability_score: data.suitability_score,
       employer_name: data.employer_name || pageEntry.employerName || null,
+      hiring_end_date: data.hiring_end_date || pageEntry.hiringEndDate || null,
       message: data.message,
     };
   } catch (err) {
